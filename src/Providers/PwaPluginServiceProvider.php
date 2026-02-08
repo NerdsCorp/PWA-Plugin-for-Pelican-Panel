@@ -5,10 +5,12 @@ namespace PwaPlugin\Providers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Events\NotificationSent;
 use PwaPlugin\Http\Controllers\PwaController;
 use PwaPlugin\Http\Controllers\PwaPushController;
 use PwaPlugin\Listeners\SendPwaPushOnDatabaseNotification;
+use PwaPlugin\Listeners\SendPwaPushOnDatabaseNotificationCreated;
 
 class PwaPluginServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,7 @@ class PwaPluginServiceProvider extends ServiceProvider
         $this->registerRoutes();
 
         Event::listen(NotificationSent::class, SendPwaPushOnDatabaseNotification::class);
+        $this->registerDatabaseNotificationHook();
     }
 
     private function registerRoutes(): void
@@ -48,6 +51,17 @@ class PwaPluginServiceProvider extends ServiceProvider
 
             Route::post('/pwa/test', [PwaPushController::class, 'test'])
                 ->name('pwa.test');
+        });
+    }
+
+    private function registerDatabaseNotificationHook(): void
+    {
+        if (!class_exists(DatabaseNotification::class)) {
+            return;
+        }
+
+        DatabaseNotification::created(function (DatabaseNotification $notification): void {
+            app(SendPwaPushOnDatabaseNotificationCreated::class)->handle($notification);
         });
     }
 }
