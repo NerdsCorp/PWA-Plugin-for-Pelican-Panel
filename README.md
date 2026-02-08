@@ -1,232 +1,210 @@
 # PWA Plugin for Pelican Panel
 
-Turn Pelican Panel into a Progressive Web App (PWA) with install support and push notifications.
+Transform your Pelican Panel into a full-fledged Progressive Web App. Your users can install it like a native app and get push notifications for all the important stuff.
 
-## Settings
+## Screenshots
+
+### Settings
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/7f39e570-365f-4934-aff3-4a9ecb016a8f" />
 
-## User Profile Settings
+### User Profile Settings
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/dce9a77a-d496-46df-b47a-f4f01acef09e" />
 
-## Android Notifcation
+### Android Notification
 <img width="600" alt="Screenshot_20260207_193224" src="https://github.com/user-attachments/assets/76e9430c-82f8-4592-afae-a1e2f0f3426f" />
 
-## Android PWA with Notifcaton
+### Android PWA with Notification
 <img width="600" alt="Screenshot_20260207_193203" src="https://github.com/user-attachments/assets/704d2ebc-5270-423f-8a7c-5b1c869148fd" />
 
-## Apple in the PWA
+### Apple in the PWA
 <img width="300" alt="IMG_4382" src="https://github.com/user-attachments/assets/6491f3ec-7ff8-474b-ae47-7cda42b0b65f" />
 
-## Apple PWA
+### Apple PWA
 <img width="300" alt="IMG_4381" src="https://github.com/user-attachments/assets/ff9778af-3da0-48f1-8fbc-da5341a523be" />
 
+## What's Included
 
-## Highlights
+- Install your panel as an app on any device (desktop or mobile)
+- Service worker that prompts users when updates are available
+- Push notifications that work through the database or email
+- Complete admin settings page for everything PWA-related
 
-- Installable PWA (desktop + mobile)
-- Service worker with update prompts
-- Push notification support (database + optional mail channel)
-- Admin settings page for all PWA configuration
+## Before You Start
 
-## Requirements
+You'll need:
+- Latest version of Pelican Panel
+- HTTPS enabled (service workers won't run without it)
+- A browser that supports PWAs
+- PNG icons for Android (SVG doesn't cut it for install icons and notifications)
 
-- Pelican Panel (latest)
-- HTTPS enabled (required for service workers and push)
-- Modern browser with PWA support
-- PNG icons for Android install + notifications (SVG is not sufficient on Android)
+## Getting It Installed
 
-## Installation
+### Through the Panel
 
-### Via Panel UI
+1. Download the plugin zip file
+2. Unzip it and remove any nested folders
+3. Rename the folder to just "pwa-plugin"
+4. Zip it back up
+5. Head to Admin → Plugins
+6. Click Import
+7. Install the plugin
+8. Configure your PWA settings
 
-1. Download the plugin zip
-2. Remove the nested folder
-3. Rename to just "pwa-plugin"
-4. Re-zip the plugin
-5. Go ot Admin -> Plugins
-6. Import
-7. Install
-8. Configure PWA Settings
-
-### Manual
+### Manual Installation
 
 ```bash
 cd /var/www/pelican/plugins
 # Upload and extract pwa-plugin here
 ```
 
-## Composer Dependency
+## About the Composer Package
 
-This plugin requires `minishlink/web-push` to send push notifications. The plugin.json includes it under `composer_packages` so the panel can install it.
+This plugin needs `minishlink/web-push` to send push notifications. It's listed in the plugin.json file so the panel should install it automatically.
 
-If your panel cannot auto-install packages, install manually:
+If that doesn't work for some reason, you can install it yourself:
 
 ```bash
 cd /var/www/pelican
 composer require minishlink/web-push
 ```
 
-## PWA Settings (Admin)
+## Configuring PWA Settings
 
-Open **Admin -> PWA** to configure everything:
+Go to **Admin → PWA** and you'll find options for:
 
-- Theme/background colors
+- Theme and background colors
 - Start URL
-- Cache name/version
-- Manifest icons (192/512)
-- Apple touch icons
-- Default notification icon/badge
-- Push options + VAPID keys
+- Cache settings (name and version)
+- Manifest icons (you'll want 192px and 512px versions)
+- Apple touch icons for iOS devices
+- Default icons for notifications and badges
+- Push notification settings including VAPID keys
 
-Settings are saved in the database and fall back to `.env` when empty.
+Everything saves to the database and falls back to your `.env` file if nothing's set.
 
-## Icon Setup (Important)
+## Icon Setup (Read This!)
 
-Android **requires PNG** icons for:
-- PWA install icons (manifest 192x192 and 512x512)
-- Notification icons/badges
+Here's the thing about Android: it needs PNG icons. Period. SVG and ICO files won't work reliably for either app installation or notifications.
 
-SVG/ICO will not work reliably on Android.
+### What You Need
 
-### Recommended files
+Put these PNG files somewhere accessible (like `public/`):
 
-Place PNGs in `public/` (or any URL path you choose):
+- `/favicon-192.png` (for the app icon)
+- `/favicon-512.png` (higher res version)
+- `/favicon-96.png` (for the notification badge)
+- Apple touch icons at 152px, 167px, and 180px if you want custom iOS icons
 
-- `/favicons/favicon-192.png`
-- `/favicons/favicon-512.png`
-- `/favicons/favicon-96.png` (badge)
-- Apple touch icons (152/167/180) if you want custom ones
+Then just enter those paths in **Admin → PWA**.
 
-Then set those paths in **Admin -> PWA**.
+### Making the Icons
 
-### Generate icons
+Try https://realfavicongenerator.net/ for a quick solution.
 
-You can use:
-- https://realfavicongenerator.net/
-
-Or ImageMagick:
+Or if you prefer command line, use ImageMagick:
 
 ```bash
-cd /var/www/pelican/public/favicons
+cd /var/www/pelican/public/
 convert logo.png -resize 192x192 favicon-192.png
 convert logo.png -resize 512x512 favicon-512.png
 convert logo.png -resize 96x96 favicon-96.png
 ```
 
-## Push Notifications
+## Setting Up Push Notifications
 
-### How it works
+### How It Works
 
-- The plugin listens for Laravel `NotificationSent` events.
-- Database notifications can be pushed automatically.
+The plugin hooks into Laravel's `NotificationSent` events, so database notifications can automatically become push notifications.
 
-### Enable Push
+### Getting Push Working
 
-1. Generate VAPID keys.
-2. Set VAPID values in **Admin -> PWA** (or `.env`).
-3. Enable **Push Notifications**.
-4. On the PWA settings page, use **Subscribe to Push**.
+1. Generate your VAPID keys
+2. Add them in **Admin → PWA** (or stick them in `.env`)
+3. Enable the push notifications feature
+4. Go to the PWA settings page and hit **Subscribe to Push**
 
-### Test Push
+### Testing It Out
 
-Use **Send Test Push** on the PWA settings page.
+There's a **Send Test Push** button on the PWA settings page. Click it to make sure everything's working.
 
 ## Quick Actions
 
-Quick actions are available:
-- In the PWA settings page
-- In the Profile page (PWA tab)
+You'll find quick action buttons in two places:
+- The PWA settings page in admin
+- The PWA tab on user profile pages
 
-## Install on User Device
+## How Users Install the App
 
 ### Desktop (Chrome, Edge, Brave)
 
-1. **Open the PWA** in your browser by navigating to the web app URL
-2. **Look for the install prompt** in the address bar:
-   - You'll see an install icon (⊕ or computer monitor icon) on the right side of the address bar
-3. **Click the install icon** or click the three-dot menu (⋮) and select "Install [App Name]"
-4. **Confirm installation** by clicking "Install" in the popup dialog
-5. **Launch the app** from:
-   - Your desktop shortcut
-   - Start menu (Windows)
-   - Applications folder (Mac)
-   - Chrome Apps page (`chrome://apps`)
+1. Open your panel in the browser
+2. Look for an install icon in the address bar (usually looks like a ⊕ or monitor icon)
+3. Click it, or go to the three-dot menu and choose "Install [App Name]"
+4. Confirm by clicking "Install"
+5. The app will show up on your desktop, in the Start menu, or Applications folder
 
-**Alternative Method:**
-- Click the three-dot menu (⋮) → "Save and Share" → "Install page as app"
-
----
+You can also do it through the menu: three-dot menu → "Save and Share" → "Install page as app"
 
 ### Android (Chrome, Samsung Internet, Edge)
 
-1. **Open the PWA** in your mobile browser by visiting the web app URL
-2. **Wait for the install banner** to appear at the bottom of the screen, OR:
-3. **Tap the three-dot menu** (⋮) in the top-right corner
-4. **Select "Install app"** or "Add to Home screen"
-   - On Samsung Internet: Tap "Add page to" → "Home screen"
-5. **Confirm installation** by tapping "Install" in the popup
-6. **Find the app icon** on your home screen or app drawer
-7. **Tap the icon** to launch the PWA in standalone mode
+1. Open the panel in your mobile browser
+2. Either wait for the install banner at the bottom, or tap the three-dot menu
+3. Choose "Install app" or "Add to Home screen"
+   - On Samsung Internet it's "Add page to" → "Home screen"
+4. Tap "Install" when prompted
+5. The app icon appears on your home screen
+6. Tap it to launch in full-screen mode
 
-**Note:** The installed PWA will behave like a native app with its own window and icon.
-
----
+It'll look and feel just like a native app.
 
 ### iOS (Safari)
 
-1. **Open the PWA** in Safari by navigating to the web app URL
-   - **Important:** PWAs must be installed through Safari on iOS (not Chrome or other browsers)
-2. **Tap the Share button** (□↑) at the bottom of the screen (or top on iPad)
-3. **Scroll down and tap "Add to Home Screen"**
-4. **Edit the name** if desired (optional)
-5. **Tap "Add"** in the top-right corner
-6. **Find the app icon** on your home screen
-7. **Tap the icon** to launch the PWA
+1. Open the panel in Safari (has to be Safari, not Chrome)
+2. Tap the Share button at the bottom (the square with an arrow)
+3. Scroll and find "Add to Home Screen"
+4. Change the name if you want
+5. Tap "Add" in the top right
+6. Find the icon on your home screen and tap to open
 
-**iOS Limitations:**
-- PWAs on iOS have limited functionality compared to Android/Desktop
-- No background sync or push notifications
-- Must be added through Safari specifically
+Heads up: iOS has some limitations with PWAs. No background sync or push notifications, and it has to be installed through Safari specifically.
 
-## Subcribe the platform to Push and Notifcations
-   1. Go to profile
-   2. Slide over to the PWA Tab
-   3. Click Request Notifications 
-   4. Click Subscribe to Push
-   5. Click Test Push 
-   6. Sucsess!!
+### General Tips
 
----
-
-### Tips for All Platforms
-
-- **Check for updates:** PWAs update automatically when you're online
-- **Offline access:** Many PWAs work offline after installation
-- **Uninstalling:** 
+- PWAs update themselves automatically when you're online
+- Most work offline once installed
+- To uninstall:
   - **Desktop:** Right-click the app icon → Uninstall
-  - **Android:** Long-press the icon → Uninstall or App info → Uninstall
-  - **iOS:** Long-press the icon → Remove App
+  - **Android:** Long-press → Uninstall or go through App info
+  - **iOS:** Long-press → Remove App
 
-## Troubleshooting
+## Enabling Push on Your Device
 
-### PWA not installing
+1. Go to your profile
+2. Switch to the PWA tab
+3. Click "Request Notifications"
+4. Click "Subscribe to Push"
+5. Hit "Test Push" to verify
+6. You're all set!
 
-- Ensure HTTPS
-- Check `manifest.json` and `service-worker.js` are reachable
-- Verify PNG icons are set in the manifest
-- Clear browser cache
+## When Things Don't Work
 
-### Android icons not showing
+### PWA Won't Install
 
-- Android ignores SVG/ICO for install and notifications
-- Use PNG in manifest + notification icon/badge
+- Double-check that HTTPS is enabled
+- Make sure `manifest.json` and `service-worker.js` are accessible
+- Verify you're using PNG icons in the manifest
+- Try clearing your browser cache
 
-### Push not working
+### Android Icons Missing
 
-- Ensure permission is granted
-- Ensure VAPID keys are configured
-- Ensure `minishlink/web-push` is installed
-- Check service worker is registered
+Android doesn't support SVG or ICO for app icons or notifications. Switch to PNG files.
+
+### Push Notifications Not Working
+
+- Check that notification permissions are granted
+- Verify VAPID keys are configured correctly
+- Confirm `minishlink/web-push` is installed
+- Make sure the service worker registered successfully
 
 ## License
 
