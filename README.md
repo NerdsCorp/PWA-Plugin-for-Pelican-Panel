@@ -49,10 +49,6 @@ Turn Pelican Panel into a Progressive Web App (PWA) with install support and pus
 ```bash
 cd /var/www/pelican/plugins
 # Upload and extract pwa-plugin here
-
-cd /var/www/pelican
-php artisan p:plugin:install
-# Select: pwa-plugin
 ```
 
 ## Composer Dependency
@@ -97,7 +93,7 @@ Place PNGs in `public/` (or any URL path you choose):
 - `/favicons/favicon-96.png` (badge)
 - Apple touch icons (152/167/180) if you want custom ones
 
-Then set those paths in **Admin ? PWA**.
+Then set those paths in **Admin -> PWA**.
 
 ### Generate icons
 
