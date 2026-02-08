@@ -4,7 +4,6 @@ namespace PwaPlugin\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -17,9 +16,7 @@ class PwaPushController extends Controller
     public function subscribe(Request $request): JsonResponse
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
-            ], 500);
+            return response()->json(['message' => 'Push subscriptions table missing'], 500);
         }
 
         $request->validate([
@@ -31,9 +28,7 @@ class PwaPushController extends Controller
 
         $user = $this->resolveUser($request);
         if (!$user) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
-            ], 401);
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         $subscription = PwaPushSubscription::query()->updateOrCreate(
@@ -49,7 +44,7 @@ class PwaPushController extends Controller
         );
 
         return response()->json([
-            'message' => trans('pwa-plugin::pwa-plugin.notifications.subscribed'),
+            'message' => 'Subscribed',
             'id' => $subscription->getKey(),
         ]);
     }
@@ -57,9 +52,7 @@ class PwaPushController extends Controller
     public function unsubscribe(Request $request): JsonResponse
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
-            ], 500);
+            return response()->json(['message' => 'Push subscriptions table missing'], 500);
         }
 
         $request->validate([
@@ -68,9 +61,7 @@ class PwaPushController extends Controller
 
         $user = $this->resolveUser($request);
         if (!$user) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
-            ], 401);
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         PwaPushSubscription::query()
@@ -79,24 +70,18 @@ class PwaPushController extends Controller
             ->where('notifiable_id', $user->getKey())
             ->delete();
 
-        return response()->json([
-            'message' => trans('pwa-plugin::pwa-plugin.notifications.unsubscribed')
-        ]);
+        return response()->json(['message' => 'Unsubscribed']);
     }
 
     public function test(Request $request, PwaSettingsRepository $settings, PwaPushService $push): JsonResponse
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
-            ], 500);
+            return response()->json(['message' => 'Push subscriptions table missing'], 500);
         }
 
         $user = $this->resolveUser($request);
         if (!$user) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
-            ], 401);
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         $vapid = [
@@ -106,15 +91,11 @@ class PwaPushController extends Controller
         ];
 
         if (!$push->canSend()) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.library_missing')
-            ], 400);
+            return response()->json(['message' => 'Web Push library missing'], 400);
         }
 
         if (!$vapid['publicKey'] || !$vapid['privateKey'] || !$vapid['subject']) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.vapid_missing')
-            ], 400);
+            return response()->json(['message' => 'VAPID keys or subject missing'], 400);
         }
 
         $subscription = PwaPushSubscription::query()
@@ -124,30 +105,22 @@ class PwaPushController extends Controller
             ->first();
 
         if (!$subscription) {
-            return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.no_subscription')
-            ], 404);
+            return response()->json(['message' => 'No subscription found'], 404);
         }
 
-        $appName = config('app.name', 'Pelican');
-        $icon = asset(ltrim($settings->get('default_notification_icon', config('pwa.default_notification_icon', '/pelican.svg')), '/'));
-        $badge = asset(ltrim($settings->get('default_notification_badge', config('pwa.default_notification_badge', '/pelican.svg')), '/'));
-
         $payload = [
-            'title' => $appName,
-            'body' => trans('pwa-plugin::pwa-plugin.messages.test_notification_body'),
-            'icon' => $icon,
-            'badge' => $badge,
-            'url' => url('/'),
+            'title' => 'Pelican Panel',
+            'body' => 'Test notification from PWA settings.',
+            'icon' => config('pwa.default_notification_icon', '/pelican.svg'),
+            'badge' => config('pwa.default_notification_badge', '/pelican.svg'),
+            'url' => url('/app'),
             'tag' => 'pwa-test',
         ];
 
         $ok = $push->sendToSubscription($subscription, $payload, $vapid);
 
         return response()->json([
-            'message' => $ok 
-                ? trans('pwa-plugin::pwa-plugin.notifications.test_sent') 
-                : trans('pwa-plugin::pwa-plugin.errors.send_failed'),
+            'message' => $ok ? 'Test notification sent' : 'Failed to send notification',
         ], $ok ? 200 : 500);
     }
 

@@ -5,7 +5,6 @@ namespace PwaPlugin\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
-use PwaPlugin\Services\PwaSettingsRepository;
 
 class PwaController extends Controller
 {
@@ -22,7 +21,7 @@ class PwaController extends Controller
         $manifest = [
             'name' => $appName,
             'short_name' => $appName,
-            'description' => trans('pwa-plugin::pwa-plugin.manifest.description'),
+            'description' => 'Game server management panel',
             'start_url' => $startUrl,
             'scope' => '/',
             'display' => 'standalone',
@@ -46,9 +45,9 @@ class PwaController extends Controller
             'categories' => ['utilities', 'productivity'],
             'shortcuts' => [
                 [
-                    'name' => trans('pwa-plugin::pwa-plugin.manifest.shortcuts.dashboard_name'),
-                    'short_name' => trans('pwa-plugin::pwa-plugin.manifest.shortcuts.dashboard_short'),
-                    'description' => trans('pwa-plugin::pwa-plugin.manifest.shortcuts.dashboard_description'),
+                    'name' => 'Dashboard',
+                    'short_name' => 'Dashboard',
+                    'description' => 'View your servers',
                     'url' => url('/app'),
                     'icons' => [
                         [
@@ -68,18 +67,10 @@ class PwaController extends Controller
     {
         $cacheName = (string) $this->setting('cache_name', 'pelican-pwa-v1');
         $cacheVersion = (int) $this->setting('cache_version', 1);
-        
-        // Dynamische Texte für den SW (Hardcoded Texte ersetzt)
-        $swDefaultTitle = config('app.name', 'Pelican Panel');
-        $swDefaultBody = trans('pwa-plugin::pwa-plugin.messages.new_notification');
-        $swDefaultIcon = config('pwa.default_notification_icon', '/pelican.svg');
 
         $serviceWorker = <<<'JS'
 const CACHE_NAME = '__CACHE_NAME__';
 const CACHE_VERSION = __CACHE_VERSION__;
-const DEFAULT_TITLE = '__DEFAULT_TITLE__';
-const DEFAULT_BODY = '__DEFAULT_BODY__';
-const DEFAULT_ICON = '__DEFAULT_ICON__';
 
 // Install event - minimal setup
 self.addEventListener('install', (event) => {
@@ -101,15 +92,15 @@ self.addEventListener('push', (event) => {
         try {
             data = event.data.json();
         } catch (e) {
-            data = { title: DEFAULT_TITLE, body: event.data.text() };
+            data = { title: 'Notification', body: event.data.text() };
         }
     }
 
-    const title = data.title || DEFAULT_TITLE;
+    const title = data.title || 'Pelican Panel';
     const options = {
-        body: data.body || DEFAULT_BODY,
-        icon: data.icon || DEFAULT_ICON,
-        badge: data.badge || DEFAULT_ICON,
+        body: data.body || 'You have a new notification',
+        icon: data.icon || '/pelican.svg',
+        badge: data.badge || '/pelican.svg',
         vibrate: [200, 100, 200],
         data: data.url || '/',
         actions: data.actions || [],
@@ -160,14 +151,8 @@ async function syncNotifications() {
 JS;
 
         $serviceWorker = str_replace(
-            ['__CACHE_NAME__', '__CACHE_VERSION__', '__DEFAULT_TITLE__', '__DEFAULT_BODY__', '__DEFAULT_ICON__'],
-            [
-                addslashes($cacheName), 
-                (string) $cacheVersion, 
-                addslashes($swDefaultTitle), 
-                addslashes($swDefaultBody),
-                addslashes($swDefaultIcon)
-            ],
+            ['__CACHE_NAME__', '__CACHE_VERSION__'],
+            [addslashes($cacheName), (string) $cacheVersion],
             $serviceWorker
         );
 
@@ -178,7 +163,7 @@ JS;
 
     private function setting(string $key, mixed $default = null): mixed
     {
-        return app(PwaSettingsRepository::class)->get($key, config('pwa.' . $key, $default));
+        return app(\PwaPlugin\Services\PwaSettingsRepository::class)->get($key, config('pwa.' . $key, $default));
     }
 
     private function startUrl(): string

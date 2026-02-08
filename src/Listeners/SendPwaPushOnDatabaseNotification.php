@@ -109,7 +109,7 @@ class SendPwaPushOnDatabaseNotification
         $outroLines = $mail->outroLines ?? [];
         $subject = $mail->subject;
 
-        $title = $subject ?: ($greeting ?: config('app.name', 'Pelican'));
+        $title = $subject ?: ($greeting ?: 'Pelican Panel');
         $body = '';
 
         if (!empty($introLines)) {
@@ -140,21 +140,15 @@ class SendPwaPushOnDatabaseNotification
 
     private function normalizePayload(array $data): array
     {
-        $defaultTitle = config('app.name', 'Pelican');
-        $defaultBody = trans('pwa-plugin::pwa-plugin.messages.new_notification');
-        
-        $title = $data['title'] ?? $data['subject'] ?? $defaultTitle;
-        $body = $data['body'] ?? $data['message'] ?? $defaultBody;
+        $title = $data['title'] ?? $data['subject'] ?? 'Pelican Panel';
+        $body = $data['body'] ?? $data['message'] ?? 'You have a new notification.';
         $url = $data['url'] ?? $data['action_url'] ?? url('/app');
-
-        $icon = asset(ltrim($this->settings->get('default_notification_icon', config('pwa.default_notification_icon', '/pelican.svg')), '/'));
-        $badge = asset(ltrim($this->settings->get('default_notification_badge', config('pwa.default_notification_badge', '/pelican.svg')), '/'));
 
         return [
             'title' => $title,
             'body' => $body,
-            'icon' => $data['icon'] ?? $icon,
-            'badge' => $data['badge'] ?? $badge,
+            'icon' => $data['icon'] ?? config('pwa.default_notification_icon', '/pelican.svg'),
+            'badge' => $data['badge'] ?? config('pwa.default_notification_badge', '/pelican.svg'),
             'url' => $url,
             'tag' => $data['tag'] ?? null,
             'requireInteraction' => $data['require_interaction'] ?? false,
