@@ -5,6 +5,8 @@ namespace PwaPlugin\Listeners;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use PwaPlugin\Jobs\SendPwaPush;
 use PwaPlugin\Models\PwaPushSubscription;
 use PwaPlugin\Services\PwaSettingsRepository;
 use PwaPlugin\Services\PwaPushService;
@@ -23,17 +25,17 @@ class SendPwaPushOnDatabaseNotification
             return;
         }
 
-        if (!$this->settings->get('push_enabled', config('pwa.push_enabled', false))) {
+        if (!$this->settings->get('push_enabled', config('pwa-plugin.push_enabled', false))) {
             return;
         }
 
         if ($event->channel === 'database'
-            && !$this->settings->get('push_send_on_database_notifications', config('pwa.push_send_on_database_notifications', true))) {
+            && !$this->settings->get('push_send_on_database_notifications', config('pwa-plugin.push_send_on_database_notifications', true))) {
             return;
         }
 
         if ($event->channel === 'mail'
-            && !$this->settings->get('push_send_on_mail_notifications', config('pwa.push_send_on_mail_notifications', false))) {
+            && !$this->settings->get('push_send_on_mail_notifications', config('pwa-plugin.push_send_on_mail_notifications', false))) {
             return;
         }
 
@@ -43,9 +45,9 @@ class SendPwaPushOnDatabaseNotification
         }
 
         $vapid = [
-            'subject' => $this->settings->get('vapid_subject', config('pwa.vapid_subject', '')),
-            'publicKey' => $this->settings->get('vapid_public_key', config('pwa.vapid_public_key', '')),
-            'privateKey' => $this->settings->get('vapid_private_key', config('pwa.vapid_private_key', '')),
+            'subject' => $this->settings->get('vapid_subject', config('pwa-plugin.vapid_subject', '')),
+            'publicKey' => $this->settings->get('vapid_public_key', config('pwa-plugin.vapid_public_key', '')),
+            'privateKey' => $this->settings->get('vapid_private_key', config('pwa-plugin.vapid_private_key', '')),
         ];
 
         if (!$this->push->canSend() || !$vapid['publicKey'] || !$vapid['privateKey'] || !$vapid['subject']) {
@@ -61,13 +63,13 @@ class SendPwaPushOnDatabaseNotification
             return;
         }
 
-        $subscriptions = PwaPushSubscription::query()
+        $subscriptionIds = PwaPushSubscription::query()
             ->where('notifiable_type', $notifiable->getMorphClass())
             ->where('notifiable_id', $notifiable->getKey())
-            ->get();
+            ->pluck('id');
 
-        foreach ($subscriptions as $subscription) {
-            $this->push->sendToSubscription($subscription, $payload, $vapid);
+        foreach ($subscriptionIds as $subscriptionId) {
+            SendPwaPush::dispatch($subscriptionId, $payload)->onQueue('push');
         }
     }
 
@@ -89,13 +91,13 @@ class SendPwaPushOnDatabaseNotification
         }
 
         if (!empty($data)) {
-            return $this->normalizePayload($data);
+            return $this->normalizePayload($data, $event->notifiable);
         }
 
         if ($event->channel === 'mail' && method_exists($event->notification, 'toMail')) {
             $mail = $event->notification->toMail($event->notifiable);
             if ($mail instanceof MailMessage) {
-                return $this->normalizePayload($this->payloadFromMailMessage($mail));
+                return $this->normalizePayload($this->payloadFromMailMessage($mail), $event->notifiable);
             }
         }
 
@@ -138,7 +140,7 @@ class SendPwaPushOnDatabaseNotification
         return $payload;
     }
 
-    private function normalizePayload(array $data): array
+    private function normalizePayload(array $data, mixed $notifiable = null): array
     {
         $defaultTitle = config('app.name', 'Pelican');
         $defaultBody = trans('pwa-plugin::pwa-plugin.messages.new_notification');
@@ -147,8 +149,8 @@ class SendPwaPushOnDatabaseNotification
         $body = $data['body'] ?? $data['message'] ?? $defaultBody;
         $url = $data['url'] ?? $data['action_url'] ?? url('/app');
 
-        $icon = asset(ltrim($this->settings->get('default_notification_icon', config('pwa.default_notification_icon', '/pelican.svg')), '/'));
-        $badge = asset(ltrim($this->settings->get('default_notification_badge', config('pwa.default_notification_badge', '/pelican.svg')), '/'));
+        $icon = $this->assetOrUrl($this->settings->get('default_notification_icon', config('pwa-plugin.default_notification_icon', '/pelican.svg')));
+        $badge = $this->assetOrUrl($this->settings->get('default_notification_badge', config('pwa-plugin.default_notification_badge', '/pelican.svg')));
 
         return [
             'title' => $title,
@@ -161,4 +163,22 @@ class SendPwaPushOnDatabaseNotification
             'actions' => $data['actions'] ?? [],
         ];
     }
+
+    private function assetOrUrl(string $value): string
+    {
+        if ($value === '') {
+            return asset('pelican.svg');
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        if (!str_starts_with($value, '/') && Storage::disk('public')->exists($value)) {
+            return Storage::disk('public')->url($value);
+        }
+
+        return asset(ltrim($value, '/'));
+    }
+
 }

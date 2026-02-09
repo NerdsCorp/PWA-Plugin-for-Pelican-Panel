@@ -32,6 +32,14 @@ return [
         'cache_version' => [
             'label' => 'Cache version',
         ],
+        'cache_enabled' => [
+            'label' => 'Enable offline cache',
+            'helper' => 'Precache URLs and serve cached responses when offline.',
+        ],
+        'cache_precache_urls' => [
+            'label' => 'Precache URLs',
+            'helper' => 'Comma or newline separated list of URLs to precache (e.g. /, /app).',
+        ],
         'manifest_icon_192' => [
             'label' => 'Manifest icon (192x192)',
             'helper' => 'Android requires PNG here for install icon.',
@@ -105,6 +113,12 @@ return [
         'no_subscription' => 'No subscription found for this browser.',
         'send_failed' => 'Failed to send notification.',
         'unsupported' => 'Installation is currently not possible. The app may already be installed or your browser does not meet the requirements.',
+        'install_android_title' => 'Install on Android',
+        'install_android_body' => 'Open the browser menu and tap "Install app" or "Add to Home screen".',
+        'install_already' => 'The app is already installed.',
+        'install_ios_title' => 'Install on iOS',
+        'install_ios_body' => 'Open this page in Safari, tap Share, then "Add to Home Screen".',
+        'png_required' => 'PNG icons are required for Android and notifications.',
     ],
     'profile' => [
         'tab_label' => 'PWA',

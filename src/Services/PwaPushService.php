@@ -35,6 +35,10 @@ class PwaPushService
 
         foreach ($webPush->flush() as $report) {
             if (!$report->isSuccess()) {
+                if ($report->isSubscriptionExpired()) {
+                    $subscription->delete();
+                }
+
                 return false;
             }
         }

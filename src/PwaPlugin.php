@@ -3,30 +3,19 @@
 namespace PwaPlugin;
 
 use Filament\Contracts\Plugin as PluginContract;
-use Filament\Facades\Filament;
 use Filament\Panel;
-use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs\Tab;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
-use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Notifications\Events\NotificationSent;
 use App\Enums\TabPosition;
 use PwaPlugin\Filament\Pages\PwaSettings;
-use PwaPlugin\Http\Controllers\PwaController;
-use PwaPlugin\Http\Controllers\PwaPushController;
-use PwaPlugin\Listeners\SendPwaPushOnDatabaseNotification;
-use PwaPlugin\Listeners\SendPwaPushOnDatabaseNotificationCreated;
 use PwaPlugin\Services\PwaSettingsRepository;
 use PwaPlugin\Services\PwaActions;
 
 class PwaPlugin implements PluginContract
 {
-    private static bool $routesRegistered = false;
-
     public function getId(): string
     {
         return 'pwa-plugin';
@@ -45,29 +34,7 @@ class PwaPlugin implements PluginContract
 
     public function boot(Panel $panel): void
     {
-        $this->registerRoutes();
-        Event::listen(NotificationSent::class, SendPwaPushOnDatabaseNotification::class);
-        $this->registerDatabaseNotificationHook();
-
         $this->registerProfileCustomizationTab();
-        $this->registerHeadHookForAllPanels();
-    }
-
-    private function registerRoutes(): void
-    {
-        if (self::$routesRegistered || Route::has('pwa.manifest')) {
-            return;
-        }
-
-        self::$routesRegistered = true;
-
-        Route::middleware('web')->group(function () {
-            Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('pwa.manifest');
-            Route::get('/service-worker.js', [PwaController::class, 'serviceWorker'])->name('pwa.sw');
-            Route::post('/pwa/subscribe', [PwaPushController::class, 'subscribe'])->name('pwa.subscribe');
-            Route::post('/pwa/unsubscribe', [PwaPushController::class, 'unsubscribe'])->name('pwa.unsubscribe');
-            Route::post('/pwa/test', [PwaPushController::class, 'test'])->name('pwa.test');
-        });
     }
 
     private function registerHeadHook(Panel $panel): void
@@ -81,33 +48,42 @@ class PwaPlugin implements PluginContract
     private function getPwaHeadHtml(): HtmlString
     {
         $settings = app(PwaSettingsRepository::class);
+        $settings->ensureVapidKeys();
         $appName = config('app.name', 'Pelican Panel');
         
-        $themeColor = $settings->get('theme_color', config('pwa.theme_color', '#0ea5e9'));
+        $themeColor = $settings->get('theme_color', config('pwa-plugin.theme_color', '#0ea5e9'));
         
-        $appleDefault = asset(ltrim($settings->get('apple_touch_icon', config('pwa.apple_touch_icon', '/pelican.svg')), '/'));
-        $apple152 = asset(ltrim($settings->get('apple_touch_icon_152', config('pwa.apple_touch_icon_152', $appleDefault)), '/'));
-        $apple167 = asset(ltrim($settings->get('apple_touch_icon_167', config('pwa.apple_touch_icon_167', $appleDefault)), '/'));
-        $apple180 = asset(ltrim($settings->get('apple_touch_icon_180', config('pwa.apple_touch_icon_180', $appleDefault)), '/'));
+        $appleDefault = $this->assetOrUrl($settings->get('apple_touch_icon', config('pwa-plugin.apple_touch_icon', '/pelican.svg')));
+        $apple152 = $this->assetOrUrl($settings->get('apple_touch_icon_152', config('pwa-plugin.apple_touch_icon_152', $appleDefault)));
+        $apple167 = $this->assetOrUrl($settings->get('apple_touch_icon_167', config('pwa-plugin.apple_touch_icon_167', $appleDefault)));
+        $apple180 = $this->assetOrUrl($settings->get('apple_touch_icon_180', config('pwa-plugin.apple_touch_icon_180', $appleDefault)));
 
-        $vapidPublicKey = json_encode($settings->get('vapid_public_key', config('pwa.vapid_public_key')));
-        $pushEnabled = json_encode($settings->get('push_enabled', config('pwa.push_enabled', false)));
+        $appNameEsc = e($appName);
+        $themeColorEsc = e($themeColor);
+        $appleDefaultEsc = e($appleDefault);
+        $apple152Esc = e($apple152);
+        $apple167Esc = e($apple167);
+        $apple180Esc = e($apple180);
+
+        $vapidPublicKey = json_encode($settings->get('vapid_public_key', config('pwa-plugin.vapid_public_key')));
+        $pushEnabled = json_encode($settings->get('push_enabled', config('pwa-plugin.push_enabled', false)));
         
         $langUpdateAvailable = json_encode(trans('pwa-plugin::pwa-plugin.messages.update_available'));
+        $langInstallAlready = json_encode(trans('pwa-plugin::pwa-plugin.errors.install_already'));
 
         $html = <<<HTML
-        <meta name="application-name" content="{$appName}">
+        <meta name="application-name" content="{$appNameEsc}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="{$appName}">
+        <meta name="apple-mobile-web-app-title" content="{$appNameEsc}">
         <meta name="mobile-web-app-capable" content="yes">
-        <meta name="theme-color" content="{$themeColor}">
+        <meta name="theme-color" content="{$themeColorEsc}">
 
         <link rel="manifest" href="/manifest.json">
-        <link rel="apple-touch-icon" href="{$appleDefault}">
-        <link rel="apple-touch-icon" sizes="152x152" href="{$apple152}">
-        <link rel="apple-touch-icon" sizes="180x180" href="{$apple180}">
-        <link rel="apple-touch-icon" sizes="167x167" href="{$apple167}">
+        <link rel="apple-touch-icon" href="{$appleDefaultEsc}">
+        <link rel="apple-touch-icon" sizes="152x152" href="{$apple152Esc}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{$apple180Esc}">
+        <link rel="apple-touch-icon" sizes="167x167" href="{$apple167Esc}">
 
         <script>
         window.pwaConfig = {
@@ -119,7 +95,8 @@ class PwaPlugin implements PluginContract
                 test: "/pwa/test",
             },
             lang: {
-                updateAvailable: {$langUpdateAvailable}
+                updateAvailable: {$langUpdateAvailable},
+                installAlready: {$langInstallAlready}
             }
         };
 
@@ -189,13 +166,25 @@ class PwaPlugin implements PluginContract
             });
         }
 
+
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', e => {
             e.preventDefault();
             deferredPrompt = e;
+            window.pwaCanInstall = true;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            window.pwaCanInstall = false;
         });
 
         window.triggerPwaInstall = () => {
+            const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone;
+            if (isStandalone) {
+                alert(window.pwaConfig?.lang?.installAlready || 'The app is already installed.');
+                return true;
+            }
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
@@ -218,28 +207,6 @@ class PwaPlugin implements PluginContract
 HTML;
 
         return new HtmlString($html);
-    }
-
-    private function registerHeadHookForAllPanels(): void
-    {
-        if (!class_exists(Filament::class) || !method_exists(Filament::class, 'getPanels')) {
-            return;
-        }
-
-        foreach (Filament::getPanels() as $panel) {
-            $this->registerHeadHook($panel);
-        }
-    }
-
-    private function registerDatabaseNotificationHook(): void
-    {
-        if (!class_exists(DatabaseNotification::class)) {
-            return;
-        }
-
-        DatabaseNotification::created(function (DatabaseNotification $notification): void {
-            app(SendPwaPushOnDatabaseNotificationCreated::class)->handle($notification);
-        });
     }
 
     private function registerProfileCustomizationTab(): void
@@ -265,5 +232,22 @@ HTML;
                         ]),
                 ])
         );
+    }
+
+    private function assetOrUrl(string $value): string
+    {
+        if ($value === '') {
+            return asset('pelican.svg');
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        if (!str_starts_with($value, '/') && Storage::disk('public')->exists($value)) {
+            return Storage::disk('public')->url($value);
+        }
+
+        return asset(ltrim($value, '/'));
     }
 }

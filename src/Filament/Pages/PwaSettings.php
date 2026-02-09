@@ -17,6 +17,7 @@ use Filament\Support\Enums\IconSize;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Textarea;
 
 class PwaSettings extends Page implements HasSchemas
 {
@@ -59,21 +60,25 @@ class PwaSettings extends Page implements HasSchemas
 
     public function mount(PwaSettingsRepository $settings): void
     {
+        $settings->ensureVapidKeys();
+
         $defaults = [
             'theme_color' => $this->defaultFromEnv('theme_color', 'PWA_PLUGIN_THEME_COLOR', '#0ea5e9'),
             'background_color' => $this->defaultFromEnv('background_color', 'PWA_PLUGIN_BACKGROUND_COLOR', '#0f172a'),
             'start_url' => $this->defaultFromEnv('start_url', 'PWA_PLUGIN_START_URL', '/'),
             'cache_name' => $this->defaultFromEnv('cache_name', 'PWA_PLUGIN_CACHE_NAME', 'pelican-pwa-v1'),
-            'cache_version' => (int) config('pwa.cache_version', 1),
+            'cache_version' => (int) config('pwa-plugin.cache_version', 1),
+            'cache_enabled' => (bool) config('pwa-plugin.cache_enabled', false),
+            'cache_precache_urls' => $this->defaultFromEnv('cache_precache_urls', 'PWA_PLUGIN_CACHE_PRECACHE_URLS', ''),
             'manifest_icon_192' => $this->defaultFromEnv('manifest_icon_192', 'PWA_PLUGIN_MANIFEST_ICON_192', '/pelican.svg'),
             'manifest_icon_512' => $this->defaultFromEnv('manifest_icon_512', 'PWA_PLUGIN_MANIFEST_ICON_512', '/pelican.svg'),
             'apple_touch_icon' => $this->defaultFromEnv('apple_touch_icon', 'PWA_PLUGIN_APPLE_TOUCH_ICON', '/pelican.svg'),
             'apple_touch_icon_152' => $this->defaultFromEnv('apple_touch_icon_152', 'PWA_PLUGIN_APPLE_TOUCH_ICON_152', '/pelican.svg'),
             'apple_touch_icon_167' => $this->defaultFromEnv('apple_touch_icon_167', 'PWA_PLUGIN_APPLE_TOUCH_ICON_167', '/pelican.svg'),
             'apple_touch_icon_180' => $this->defaultFromEnv('apple_touch_icon_180', 'PWA_PLUGIN_APPLE_TOUCH_ICON_180', '/pelican.svg'),
-            'push_enabled' => (bool) config('pwa.push_enabled', false),
-            'push_send_on_database_notifications' => (bool) config('pwa.push_send_on_database_notifications', true),
-            'push_send_on_mail_notifications' => (bool) config('pwa.push_send_on_mail_notifications', false),
+            'push_enabled' => (bool) config('pwa-plugin.push_enabled', false),
+            'push_send_on_database_notifications' => (bool) config('pwa-plugin.push_send_on_database_notifications', true),
+            'push_send_on_mail_notifications' => (bool) config('pwa-plugin.push_send_on_mail_notifications', false),
             'vapid_public_key' => $this->defaultFromEnv('vapid_public_key', 'PWA_PLUGIN_VAPID_PUBLIC_KEY', ''),
             'vapid_private_key' => $this->defaultFromEnv('vapid_private_key', 'PWA_PLUGIN_VAPID_PRIVATE_KEY', ''),
             'vapid_subject' => $this->defaultFromEnv('vapid_subject', 'PWA_PLUGIN_VAPID_SUBJECT', ''),
@@ -122,6 +127,16 @@ class PwaSettings extends Page implements HasSchemas
                                 ->label(trans('pwa-plugin::pwa-plugin.fields.cache_version.label'))
                                 ->numeric()
                                 ->required(),
+
+                            Toggle::make('cache_enabled')
+                                ->label(trans('pwa-plugin::pwa-plugin.fields.cache_enabled.label'))
+                                ->helperText(trans('pwa-plugin::pwa-plugin.fields.cache_enabled.helper')),
+
+                            Textarea::make('cache_precache_urls')
+                                ->label(trans('pwa-plugin::pwa-plugin.fields.cache_precache_urls.label'))
+                                ->helperText(trans('pwa-plugin::pwa-plugin.fields.cache_precache_urls.helper'))
+                                ->rows(4)
+                                ->visible(fn ($get) => $get('cache_enabled')),
                             
                             Group::make()->columns(2)->schema([
                                 TextInput::make('manifest_icon_192')
@@ -136,7 +151,7 @@ class PwaSettings extends Page implements HasSchemas
                                     ->required()
                                     ->maxLength(255),
                             ]),
-                            
+
                             Group::make()->columns(2)->schema([
                                 TextInput::make('apple_touch_icon')
                                     ->label(trans('pwa-plugin::pwa-plugin.fields.apple_touch_icon.label'))
@@ -241,13 +256,55 @@ class PwaSettings extends Page implements HasSchemas
     public function save(PwaSettingsRepository $settings): void
     {
         $state = $this->form->getState();
+        $this->applyUploads($state);
+        $invalidPngFields = $this->validatePngFields($state);
+        if (!empty($invalidPngFields)) {
+            Notification::make()
+                ->title(trans('pwa-plugin::pwa-plugin.errors.png_required'))
+                ->body(implode(', ', $invalidPngFields))
+                ->warning()
+                ->send();
+        }
         $settings->setMany($state);
         Notification::make()->title(trans('pwa-plugin::pwa-plugin.notifications.saved'))->success()->send();
     }
 
     private function defaultFromEnv(string $key, string $envKey, string $fallback): string
     {
-        $value = (string) config('pwa.' . $key, $fallback);
+        $value = (string) config('pwa-plugin.' . $key, $fallback);
         return $value ?: (string) env($envKey, $fallback);
     }
+
+    /** @param array<string, mixed> $state */
+    private function validatePngFields(array $state): array
+    {
+        $fields = [
+            'manifest_icon_192' => trans('pwa-plugin::pwa-plugin.fields.manifest_icon_192.label'),
+            'manifest_icon_512' => trans('pwa-plugin::pwa-plugin.fields.manifest_icon_512.label'),
+            'default_notification_icon' => trans('pwa-plugin::pwa-plugin.fields.default_notification_icon.label'),
+            'default_notification_badge' => trans('pwa-plugin::pwa-plugin.fields.default_notification_badge.label'),
+        ];
+
+        $invalid = [];
+        foreach ($fields as $key => $label) {
+            $value = trim((string) ($state[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            $path = parse_url($value, PHP_URL_PATH) ?: $value;
+            if (!str_ends_with(strtolower($path), '.png')) {
+                $invalid[] = $label;
+            }
+        }
+
+        return $invalid;
+    }
+
+    /** @param array<string, mixed> $state */
+    private function applyUploads(array &$state): void
+    {
+        // No-op: uploads removed.
+    }
+
 }

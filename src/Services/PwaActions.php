@@ -6,6 +6,7 @@ use Filament\Actions\Action;
 use Filament\Schemas\Components\Actions as SchemaActions;
 use Filament\Schemas\Components\Group;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Str;
 use PwaPlugin\Services\PwaSettingsRepository;
 
 class PwaActions
@@ -21,9 +22,23 @@ class PwaActions
                         ->label(trans('pwa-plugin::pwa-plugin.actions.install'))
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('success')
-                        ->action(fn() => Notification::make()->title(trans('pwa-plugin::pwa-plugin.errors.unsupported'))->warning()->send())
+                        ->action(function () {
+                            $ua = request()->header('User-Agent', '');
+                            $isIos = Str::contains($ua, ['iPhone', 'iPad', 'iPod']);
+                            $isAndroid = Str::contains($ua, ['Android']);
+
+                            Notification::make()
+                                ->title($isIos
+                                    ? trans('pwa-plugin::pwa-plugin.errors.install_ios_title')
+                                    : ($isAndroid ? trans('pwa-plugin::pwa-plugin.errors.install_android_title') : trans('pwa-plugin::pwa-plugin.errors.unsupported')))
+                                ->body($isIos
+                                    ? trans('pwa-plugin::pwa-plugin.errors.install_ios_body')
+                                    : ($isAndroid ? trans('pwa-plugin::pwa-plugin.errors.install_android_body') : null))
+                                ->warning()
+                                ->send();
+                        })
                         ->extraAttributes([
-                            'onclick' => "if(!window.triggerPwaInstall()){ \$wire.call('mountAction', 'install'); } return false;",
+                            'onclick' => "if(!window.triggerPwaInstall?.()){ \$wire.call('mountAction', 'install'); } return false;",
                         ]),
                 ])->fullWidth(),
 
@@ -56,7 +71,7 @@ class PwaActions
                         ->label(trans('pwa-plugin::pwa-plugin.actions.test_push'))
                         ->icon('heroicon-o-paper-airplane')
                         ->color('warning')
-                        ->visible(fn () => app(PwaSettingsRepository::class)->get('push_enabled') ?? false)
+                        ->visible(fn () => app(PwaSettingsRepository::class)->get('push_enabled', config('pwa-plugin.push_enabled', false)) ?? false)
                         ->action(fn() => Notification::make()->title(trans('pwa-plugin::pwa-plugin.notifications.test_sent'))->success()->send())
                         ->extraAttributes(['onclick' => <<<JS
                             const btn = event.target;

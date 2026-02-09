@@ -4,6 +4,8 @@ return [
 
     'cache_version' => env('PWA_PLUGIN_CACHE_VERSION', 1),
     'cache_name' => env('PWA_PLUGIN_CACHE_NAME', 'pelican-pwa-v1'),
+    'cache_enabled' => env('PWA_PLUGIN_CACHE_ENABLED', false),
+    'cache_precache_urls' => env('PWA_PLUGIN_CACHE_PRECACHE_URLS', ''),
     
     'theme_color' => env('PWA_PLUGIN_THEME_COLOR', '#0ea5e9'),
     'background_color' => env('PWA_PLUGIN_BACKGROUND_COLOR', '#0f172a'),

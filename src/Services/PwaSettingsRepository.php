@@ -14,6 +14,7 @@ class PwaSettingsRepository
         'background_color',
         'start_url',
         'cache_name',
+        'cache_precache_urls',
         'vapid_public_key',
         'vapid_private_key',
         'vapid_subject',
@@ -48,6 +49,31 @@ class PwaSettingsRepository
         }
 
         return $value;
+    }
+
+    public function ensureVapidKeys(): void
+    {
+        if (!Schema::hasTable('pwa_settings')) {
+            return;
+        }
+
+        if (!class_exists(\Minishlink\WebPush\VAPID::class)) {
+            return;
+        }
+
+        $public = (string) $this->get('vapid_public_key', '');
+        $private = (string) $this->get('vapid_private_key', '');
+
+        if ($public !== '' && $private !== '') {
+            return;
+        }
+
+        $keys = \Minishlink\WebPush\VAPID::createVapidKeys();
+
+        $this->setMany([
+            'vapid_public_key' => $keys['publicKey'] ?? '',
+            'vapid_private_key' => $keys['privateKey'] ?? '',
+        ]);
     }
 
     public function set(string $key, mixed $value): void

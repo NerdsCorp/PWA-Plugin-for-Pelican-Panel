@@ -5,6 +5,7 @@ namespace PwaPlugin\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 use PwaPlugin\Services\PwaSettingsRepository;
 
 class PwaController extends Controller
@@ -68,15 +69,19 @@ class PwaController extends Controller
     {
         $cacheName = (string) $this->setting('cache_name', 'pelican-pwa-v1');
         $cacheVersion = (int) $this->setting('cache_version', 1);
+        $cacheEnabled = (bool) $this->setting('cache_enabled', false);
+        $precacheUrls = $this->parsePrecacheUrls((string) $this->setting('cache_precache_urls', ''));
         
         // Dynamische Texte für den SW (Hardcoded Texte ersetzt)
         $swDefaultTitle = config('app.name', 'Pelican Panel');
         $swDefaultBody = trans('pwa-plugin::pwa-plugin.messages.new_notification');
-        $swDefaultIcon = config('pwa.default_notification_icon', '/pelican.svg');
+        $swDefaultIcon = $this->setting('default_notification_icon', '/pelican.svg');
 
         $serviceWorker = <<<'JS'
 const CACHE_NAME = '__CACHE_NAME__';
 const CACHE_VERSION = __CACHE_VERSION__;
+const CACHE_ENABLED = __CACHE_ENABLED__;
+const PRECACHE_URLS = __PRECACHE_URLS__;
 const DEFAULT_TITLE = '__DEFAULT_TITLE__';
 const DEFAULT_BODY = '__DEFAULT_BODY__';
 const DEFAULT_ICON = '__DEFAULT_ICON__';
@@ -84,13 +89,27 @@ const DEFAULT_ICON = '__DEFAULT_ICON__';
 // Install event - minimal setup
 self.addEventListener('install', (event) => {
     console.log('PWA: Service Worker installing');
-    self.skipWaiting();
+    event.waitUntil((async () => {
+        if (CACHE_ENABLED && Array.isArray(PRECACHE_URLS) && PRECACHE_URLS.length > 0) {
+            const cache = await caches.open(`${CACHE_NAME}:${CACHE_VERSION}`);
+            await cache.addAll(PRECACHE_URLS);
+        }
+        self.skipWaiting();
+    })());
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
     console.log('PWA: Service Worker activating');
-    event.waitUntil(self.clients.claim());
+    event.waitUntil((async () => {
+        if (CACHE_ENABLED) {
+            const keys = await caches.keys();
+            await Promise.all(keys
+                .filter(key => key.startsWith(CACHE_NAME) && key !== `${CACHE_NAME}:${CACHE_VERSION}`)
+                .map(key => caches.delete(key)));
+        }
+        await self.clients.claim();
+    })());
 });
 
 // Push notification handler
@@ -146,6 +165,37 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
+// Basic runtime caching (optional)
+self.addEventListener('fetch', (event) => {
+    if (!CACHE_ENABLED) return;
+    if (event.request.method !== 'GET') return;
+
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) return;
+    if (url.pathname.startsWith('/pwa/')) return;
+    if (url.pathname.startsWith('/api/')) return;
+
+    const accept = event.request.headers.get('accept') || '';
+    if (!accept.includes('text/html')
+        && !accept.includes('text/css')
+        && !accept.includes('application/javascript')
+        && !accept.includes('image/')) {
+        return;
+    }
+
+    event.respondWith((async () => {
+        const cache = await caches.open(`${CACHE_NAME}:${CACHE_VERSION}`);
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+
+        const response = await fetch(event.request);
+        if (response && response.status === 200) {
+            cache.put(event.request, response.clone());
+        }
+        return response;
+    })());
+});
+
 // Background sync (optional - for future use)
 self.addEventListener('sync', (event) => {
     if (event.tag === 'sync-notifications') {
@@ -160,11 +210,13 @@ async function syncNotifications() {
 JS;
 
         $serviceWorker = str_replace(
-            ['__CACHE_NAME__', '__CACHE_VERSION__', '__DEFAULT_TITLE__', '__DEFAULT_BODY__', '__DEFAULT_ICON__'],
+            ['__CACHE_NAME__', '__CACHE_VERSION__', '__CACHE_ENABLED__', '__PRECACHE_URLS__', '__DEFAULT_TITLE__', '__DEFAULT_BODY__', '__DEFAULT_ICON__'],
             [
-                addslashes($cacheName), 
-                (string) $cacheVersion, 
-                addslashes($swDefaultTitle), 
+                addslashes($cacheName),
+                (string) $cacheVersion,
+                $cacheEnabled ? 'true' : 'false',
+                json_encode($precacheUrls, JSON_UNESCAPED_SLASHES),
+                addslashes($swDefaultTitle),
                 addslashes($swDefaultBody),
                 addslashes($swDefaultIcon)
             ],
@@ -178,7 +230,7 @@ JS;
 
     private function setting(string $key, mixed $default = null): mixed
     {
-        return app(PwaSettingsRepository::class)->get($key, config('pwa.' . $key, $default));
+        return app(PwaSettingsRepository::class)->get($key, config('pwa-plugin.' . $key, $default));
     }
 
     private function startUrl(): string
@@ -205,6 +257,10 @@ JS;
             return $value;
         }
 
+        if (!str_starts_with($value, '/') && Storage::disk('public')->exists($value)) {
+            return Storage::disk('public')->url($value);
+        }
+
         return asset(ltrim($value, '/'));
     }
 
@@ -216,5 +272,14 @@ JS;
         }
 
         return 'image/png';
+    }
+
+    /** @return string[] */
+    private function parsePrecacheUrls(string $raw): array
+    {
+        $parts = preg_split('/[\r\n,]+/', $raw) ?: [];
+        $urls = array_filter(array_map('trim', $parts), fn ($value) => $value !== '');
+
+        return array_values(array_unique($urls));
     }
 }

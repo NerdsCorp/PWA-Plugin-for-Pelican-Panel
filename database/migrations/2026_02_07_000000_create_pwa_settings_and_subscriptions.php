@@ -22,7 +22,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('notifiable_type');
                 $table->unsignedBigInteger('notifiable_id');
-                $table->text('endpoint');
+                $table->string('endpoint', 2048);
                 $table->string('public_key');
                 $table->string('auth_token');
                 $table->string('content_encoding')->default('aesgcm');

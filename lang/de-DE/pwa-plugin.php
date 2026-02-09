@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 return [
     'navigation' => [
@@ -23,7 +23,7 @@ return [
         ],
         'start_url' => [
             'label' => 'Start-URL',
-            'helper' => 'Relative URL für den PWA-Start.',
+            'helper' => 'Relative URL fÃ¼r den PWA-Start.',
         ],
         'cache_name' => [
             'label' => 'Cache-Name',
@@ -32,13 +32,21 @@ return [
         'cache_version' => [
             'label' => 'Cache-Version',
         ],
+        'cache_enabled' => [
+            'label' => 'Offline-Cache aktivieren',
+            'helper' => 'URLs vorab speichern und bei Offline-Nutzung aus dem Cache bedienen.',
+        ],
+        'cache_precache_urls' => [
+            'label' => 'Vorgecachete URLs',
+            'helper' => 'Kommagetrennte oder zeilenweise URLs zum Vercachen (z. B. /, /app).',
+        ],
         'manifest_icon_192' => [
             'label' => 'Manifest-Icon (192x192)',
-            'helper' => 'Android benötigt hier ein PNG für das Installations-Icon.',
+            'helper' => 'Android benÃ¶tigt hier ein PNG fÃ¼r das Installations-Icon.',
         ],
         'manifest_icon_512' => [
             'label' => 'Manifest-Icon (512x512)',
-            'helper' => 'Android benötigt hier ein PNG für das Installations-Icon.',
+            'helper' => 'Android benÃ¶tigt hier ein PNG fÃ¼r das Installations-Icon.',
         ],
         'apple_touch_icon' => [
             'label' => 'Apple Touch Icon (Standard)',
@@ -54,33 +62,33 @@ return [
         ],
         'push_enabled' => [
             'label' => 'Push-Benachrichtigungen aktivieren',
-            'helper' => 'Erfordert VAPID-Schlüssel und die Web-Push-Bibliothek.',
+            'helper' => 'Erfordert VAPID-SchlÃ¼ssel und die Web-Push-Bibliothek.',
         ],
         'push_send_on_db' => [
-            'label' => 'Push für Panel-Benachrichtigungen senden',
+            'label' => 'Push fÃ¼r Panel-Benachrichtigungen senden',
             'helper' => 'Sendet Push, wenn eine Benachrichtigung in der Datenbank gespeichert wird.',
         ],
         'push_send_on_mail' => [
-            'label' => 'Push für E-Mail-Benachrichtigungen senden',
-            'helper' => 'Sendet Push für Benachrichtigungen, die nur den E-Mail-Kanal nutzen.',
+            'label' => 'Push fÃ¼r E-Mail-Benachrichtigungen senden',
+            'helper' => 'Sendet Push fÃ¼r Benachrichtigungen, die nur den E-Mail-Kanal nutzen.',
         ],
         'vapid_subject' => [
             'label' => 'VAPID-Betreff',
             'helper' => 'Normalerweise eine mailto: oder https: URL, z. B. mailto:admin@beispiel.de',
         ],
         'vapid_public_key' => [
-            'label' => 'Öffentlicher VAPID-Schlüssel',
+            'label' => 'Ã–ffentlicher VAPID-SchlÃ¼ssel',
         ],
         'vapid_private_key' => [
-            'label' => 'Privater VAPID-Schlüssel',
+            'label' => 'Privater VAPID-SchlÃ¼ssel',
         ],
         'default_notification_icon' => [
             'label' => 'Standard-Benachrichtigungs-Icon',
-            'helper' => 'Standard-Icon für Push-Benachrichtigungen.',
+            'helper' => 'Standard-Icon fÃ¼r Push-Benachrichtigungen.',
         ],
         'default_notification_badge' => [
             'label' => 'Standard-Benachrichtigungs-Badge',
-            'helper' => 'Standard-Badge für Push-Benachrichtigungen.',
+            'helper' => 'Standard-Badge fÃ¼r Push-Benachrichtigungen.',
         ],
     ],
     'actions' => [
@@ -98,26 +106,32 @@ return [
         'test_sent' => 'Test-Benachrichtigung wurde gesendet.',
     ],
     'errors' => [
-        'table_missing' => 'Datenbanktabelle für Push-Abonnements fehlt.',
+        'table_missing' => 'Datenbanktabelle fÃ¼r Push-Abonnements fehlt.',
         'unauthorized' => 'Nicht autorisierter Zugriff.',
         'library_missing' => 'Web-Push Bibliothek nicht gefunden.',
-        'vapid_missing' => 'VAPID-Schlüssel oder Betreff fehlen.',
-        'no_subscription' => 'Kein Abonnement für diesen Browser gefunden.',
+        'vapid_missing' => 'VAPID-SchlÃ¼ssel oder Betreff fehlen.',
+        'no_subscription' => 'Kein Abonnement fÃ¼r diesen Browser gefunden.',
         'send_failed' => 'Senden der Benachrichtigung fehlgeschlagen.',
-        'unsupported' => 'Installation momentan nicht möglich. Die App ist eventuell bereits installiert oder Ihr Browser erfüllt die Anforderungen nicht.',
+        'unsupported' => 'Installation momentan nicht mÃ¶glich. Die App ist eventuell bereits installiert oder Ihr Browser erfÃ¼llt die Anforderungen nicht.',
+        'install_android_title' => 'Installation auf Android',
+        'install_android_body' => 'Öffne das Browser-Menü und tippe auf „App installieren“ oder „Zum Startbildschirm hinzufügen“.',
+        'install_already' => 'Die App ist bereits installiert.',
+        'install_ios_title' => 'Installation auf iOS',
+        'install_ios_body' => 'Öffne diese Seite in Safari, tippe auf Teilen und dann auf "Zum Home-Bildschirm".',
+        'png_required' => 'PNG-Icons sind für Android und Benachrichtigungen erforderlich.',
     ],
     'profile' => [
         'tab_label' => 'PWA',
         'section_heading' => 'PWA Aktionen',
-        'section_description' => 'Verwalten Sie Ihre Geräteverbindung und Benachrichtigungen.',
+        'section_description' => 'Verwalten Sie Ihre GerÃ¤teverbindung und Benachrichtigungen.',
     ],
     'messages' => [
-        'update_available' => 'Eine neue Version ist verfügbar. Jetzt neu laden?',
+        'update_available' => 'Eine neue Version ist verfÃ¼gbar. Jetzt neu laden?',
         'test_notification_body' => 'Dies ist eine Test-Benachrichtigung deiner PWA.',
         'new_notification' => 'Du hast eine neue Benachrichtigung.',
     ],
     'manifest' => [
-        'description' => 'Die offizielle App für unser Panel.',
+        'description' => 'Die offizielle App fÃ¼r unser Panel.',
         'shortcuts' => [
             'dashboard_name' => 'Dashboard',
             'dashboard_short' => 'Dashboard',
@@ -125,3 +139,4 @@ return [
         ],
     ],
 ];
+
