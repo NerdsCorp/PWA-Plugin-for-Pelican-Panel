@@ -23,10 +23,10 @@ class PwaPushController extends Controller
         }
 
         $request->validate([
-            'endpoint' => ['required', 'string'],
-            'keys.p256dh' => ['required', 'string'],
-            'keys.auth' => ['required', 'string'],
-            'contentEncoding' => ['nullable', 'string'],
+            'endpoint' => ['required', 'string', 'url', 'max:2048'],
+            'keys.p256dh' => ['required', 'string', 'max:255'],
+            'keys.auth' => ['required', 'string', 'max:255'],
+            'contentEncoding' => ['nullable', 'string', 'max:50'],
         ]);
 
         $user = $this->resolveUser($request);
@@ -37,10 +37,12 @@ class PwaPushController extends Controller
         }
 
         $subscription = PwaPushSubscription::query()->updateOrCreate(
-            ['endpoint' => $request->string('endpoint')->toString()],
             [
+                'endpoint' => $request->string('endpoint')->toString(),
                 'notifiable_type' => $user->getMorphClass(),
                 'notifiable_id' => $user->getKey(),
+            ],
+            [
                 'public_key' => $request->input('keys.p256dh'),
                 'auth_token' => $request->input('keys.auth'),
                 'content_encoding' => $request->input('contentEncoding', 'aesgcm'),
@@ -63,7 +65,7 @@ class PwaPushController extends Controller
         }
 
         $request->validate([
-            'endpoint' => ['required', 'string'],
+            'endpoint' => ['required', 'string', 'url', 'max:2048'],
         ]);
 
         $user = $this->resolveUser($request);
@@ -167,13 +169,6 @@ class PwaPushController extends Controller
         $defaultGuard = config('auth.defaults.guard');
         if ($defaultGuard) {
             $user = Auth::guard($defaultGuard)->user();
-            if ($user) {
-                return $user;
-            }
-        }
-
-        foreach (array_keys(config('auth.guards', [])) as $guard) {
-            $user = Auth::guard($guard)->user();
             if ($user) {
                 return $user;
             }
