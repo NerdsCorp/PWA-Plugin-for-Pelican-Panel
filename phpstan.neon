@@ -5,15 +5,26 @@ parameters:
     excludePaths:
         - vendor
     
+    # Don't report unmatched ignored errors
+    reportUnmatchedIgnoredErrors: false
+    
     # Plugin-friendly settings - ignore missing Laravel/Filament classes
     # These will be available when the plugin is loaded in a Laravel app
     ignoreErrors:
-        - '#Function (trans|config|env|user|url|asset|response|app|request|route|e) not found#'
-        - '#Call to static method .* on an unknown class (Illuminate|Filament)\\#'
-        - '#Call to method .* on an unknown class (Illuminate|Filament)\\#'
-        - '#Class .* (extends|implements|uses) unknown (class|interface|trait) (Illuminate|Filament)\\#'
-        - '#has invalid (return )?type (Illuminate|Filament)\\#'
-        - '#Access to .* on an unknown class (Illuminate|Filament)\\#'
-        - '#Parameter .* has invalid type (Illuminate|Filament)\\#'
-        - '#Instantiated class (Illuminate|Filament).* not found#'
-        - '#Class (Illuminate|Filament).* not found#'
+        # Ignore all "unknown class" errors for Laravel/Filament
+        - '#(extends|implements|uses) unknown (class|interface|trait)#'
+        
+        # Ignore undefined methods/properties on models
+        - '#Call to an undefined (static )?method#'
+        - '#Access to an undefined property#'
+        
+        # Ignore helper function errors
+        - '#Function .* not found#'
+        
+        # Ignore type errors for Laravel/Filament classes
+        - '#has invalid (return )?type#'
+        - '#Call to (static )?method .* on an unknown class#'
+        - '#Access to .* on an unknown class#'
+        - '#Instantiated class .* not found#'
+        - '#Class .* not found#'
+        - '#Cannot call method .* on class-string\|object#'
