@@ -16,8 +16,7 @@ class SendPwaPushOnDatabaseNotification
     public function __construct(
         private PwaSettingsRepository $settings,
         private PwaPushService $push,
-    ) {
-    }
+    ) {}
 
     public function handle(NotificationSent $event): void
     {
