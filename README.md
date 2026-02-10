@@ -115,9 +115,6 @@ convert logo.png -resize 96x96 favicon-96.png
 
 ## Setting Up Push Notifications
 
-### How It Works
-
-The plugin hooks into Laravel's `NotificationSent` events, so database notifications can automatically become push notifications.
 
 ### Getting Push Working
 
