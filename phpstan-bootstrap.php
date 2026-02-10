@@ -18,14 +18,14 @@ namespace Illuminate\Database\Eloquent {
 
 namespace Illuminate\Support {
     class ServiceProvider {
-        protected function loadMigrationsFrom() {}
-        protected function loadViewsFrom() {}
+        protected function loadMigrationsFrom(string $path) {}
+        protected function loadViewsFrom(string $path, string $namespace) {}
     }
 }
 
 namespace Illuminate\Foundation\Support\Providers {
     class RouteServiceProvider extends \Illuminate\Support\ServiceProvider {
-        protected function routes() {}
+        protected function routes(callable $callback) {}
     }
 }
 
@@ -35,7 +35,7 @@ namespace Illuminate\Contracts\Queue {
 
 namespace Illuminate\Foundation\Bus {
     trait Dispatchable {
-        public static function dispatch() {}
+        public static function dispatch(mixed ...$arguments) {}
     }
 }
 
