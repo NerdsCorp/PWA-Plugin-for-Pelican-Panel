@@ -13,11 +13,14 @@ use PwaPlugin\Services\PwaSettingsRepository;
 
 class SendPwaPushOnDatabaseNotification
 {
+    private PwaSettingsRepository $settings;
+    private PwaPushService $push;
 
-    public function __construct(
-        private PwaSettingsRepository $settings,
-        private PwaPushService $push,
-    ) {}
+    public function __construct(PwaSettingsRepository $settings, PwaPushService $push)
+    {
+        $this->settings = $settings;
+        $this->push = $push;
+    }
 
     public function handle(NotificationSent $event): void
     {
