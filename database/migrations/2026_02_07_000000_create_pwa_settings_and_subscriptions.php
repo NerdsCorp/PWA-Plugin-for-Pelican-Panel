@@ -23,6 +23,7 @@ return new class extends Migration
                 $table->string('notifiable_type');
                 $table->unsignedBigInteger('notifiable_id');
                 $table->string('endpoint', 2048);
+                $table->string('endpoint_hash', 64);
                 $table->string('public_key');
                 $table->string('auth_token');
                 $table->string('content_encoding')->default('aesgcm');
@@ -30,7 +31,7 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->index(['notifiable_type', 'notifiable_id']);
-                $table->unique('endpoint');
+                $table->unique('endpoint_hash');
             });
         }
     }
