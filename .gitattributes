@@ -1,0 +1,7 @@
+.gitattributes export-ignore
+.github/ export-ignore
+phpstan-bootstrap.php export-ignore
+phpstan.neon export-ignore
+pint.json export-ignore
+plugin.json export-ignore
+composer.json export-ignore
