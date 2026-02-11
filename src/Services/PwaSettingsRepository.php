@@ -4,8 +4,8 @@ namespace PwaPlugin\Services;
 
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
-use Throwable;
 use PwaPlugin\Models\PwaSetting;
+use Throwable;
 
 class PwaSettingsRepository
 {
@@ -88,7 +88,7 @@ class PwaSettingsRepository
 
         PwaSetting::query()->updateOrCreate(
             ['key' => $key],
-            ['value' => $value]
+            ['value' => $value],
         );
     }
 

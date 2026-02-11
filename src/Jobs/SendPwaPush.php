@@ -25,8 +25,7 @@ class SendPwaPush implements ShouldQueue
     public function __construct(
         private readonly int $subscriptionId,
         private readonly array $payload,
-    ) {
-    }
+    ) {}
 
     public function handle(PwaPushService $push, PwaSettingsRepository $settings): void
     {
