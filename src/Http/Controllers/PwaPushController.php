@@ -45,7 +45,7 @@ class PwaPushController extends Controller
             [
                 'public_key' => $request->input('keys.p256dh'),
                 'auth_token' => $request->input('keys.auth'),
-                'content_encoding' => $request->input('contentEncoding', 'aesgcm'),
+                'content_encoding' => $request->input('contentEncoding') ?? 'aesgcm',
                 'user_agent' => $request->userAgent(),
             ],
         );
