@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
@@ -77,6 +76,7 @@ return new class extends Migration
 
         if (DB::getDriverName() === 'sqlite') {
             DB::statement(sprintf('drop index "%s"', str_replace('"', '""', $indexName)));
+
             return;
         }
 
