@@ -1,0 +1,31 @@
+parameters:
+    level: 4
+    paths:
+        - src
+    excludePaths:
+        - vendor
+    
+    # Bootstrap file with Laravel/Filament stubs
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    
+    # Don't report unmatched ignored errors
+    reportUnmatchedIgnoredErrors: false
+    
+    # Ignore remaining errors for framework classes
+    ignoreErrors:
+        # Ignore undefined methods/properties on models
+        - '#Call to an undefined (static )?method#'
+        - '#Access to an undefined property#'
+        
+        # Ignore helper function errors
+        - '#Function .* not found#'
+        
+        # Ignore type errors for Laravel/Filament classes
+        - '#has invalid (return )?type#'
+        - '#Call to (static )?method .* on an unknown class#'
+        - '#Access to .* on an unknown class#'
+        - '#Instantiated class .* not found#'
+        - '#Class .* not found#'
+        - '#Cannot call method .* on class-string\|object#'
+

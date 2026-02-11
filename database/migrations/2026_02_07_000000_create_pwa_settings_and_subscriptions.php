@@ -31,7 +31,7 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->index(['notifiable_type', 'notifiable_id']);
-                $table->unique('endpoint_hash');
+                $table->unique(['endpoint', 'notifiable_type', 'notifiable_id']);
             });
         }
     }

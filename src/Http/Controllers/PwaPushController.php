@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PwaPlugin\Models\PwaPushSubscription;
-use PwaPlugin\Services\PwaSettingsRepository;
 use PwaPlugin\Services\PwaPushService;
+use PwaPlugin\Services\PwaSettingsRepository;
 
 class PwaPushController extends Controller
 {
@@ -18,21 +18,21 @@ class PwaPushController extends Controller
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing'),
             ], 500);
         }
 
         $request->validate([
-            'endpoint' => ['required', 'string'],
-            'keys.p256dh' => ['required', 'string'],
-            'keys.auth' => ['required', 'string'],
-            'contentEncoding' => ['nullable', 'string'],
+            'endpoint' => ['required', 'string', 'url', 'max:2048'],
+            'keys.p256dh' => ['required', 'string', 'max:255'],
+            'keys.auth' => ['required', 'string', 'max:255'],
+            'contentEncoding' => ['nullable', 'string', 'max:50'],
         ]);
 
         $user = $this->resolveUser($request);
         if (!$user) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized'),
             ], 401);
         }
 
@@ -40,16 +40,17 @@ class PwaPushController extends Controller
         $endpointHash = hash('sha256', $endpoint);
 
         $subscription = PwaPushSubscription::query()->updateOrCreate(
-            ['endpoint_hash' => $endpointHash],
             [
+                'endpoint' => $request->string('endpoint')->toString(),
                 'notifiable_type' => $user->getMorphClass(),
                 'notifiable_id' => $user->getKey(),
-                'endpoint' => $endpoint,
+            ],
+            [
                 'public_key' => $request->input('keys.p256dh'),
                 'auth_token' => $request->input('keys.auth'),
-                'content_encoding' => $request->input('contentEncoding', 'aesgcm'),
+                'content_encoding' => $request->input('contentEncoding') ?? 'aesgcm',
                 'user_agent' => $request->userAgent(),
-            ]
+            ],
         );
 
         return response()->json([
@@ -62,18 +63,18 @@ class PwaPushController extends Controller
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing'),
             ], 500);
         }
 
         $request->validate([
-            'endpoint' => ['required', 'string'],
+            'endpoint' => ['required', 'string', 'url', 'max:2048'],
         ]);
 
         $user = $this->resolveUser($request);
         if (!$user) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized'),
             ], 401);
         }
 
@@ -88,7 +89,7 @@ class PwaPushController extends Controller
             ->delete();
 
         return response()->json([
-            'message' => trans('pwa-plugin::pwa-plugin.notifications.unsubscribed')
+            'message' => trans('pwa-plugin::pwa-plugin.notifications.unsubscribed'),
         ]);
     }
 
@@ -96,14 +97,14 @@ class PwaPushController extends Controller
     {
         if (!Schema::hasTable('pwa_push_subscriptions')) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.table_missing'),
             ], 500);
         }
 
         $user = $this->resolveUser($request);
         if (!$user) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.unauthorized'),
             ], 401);
         }
 
@@ -115,13 +116,13 @@ class PwaPushController extends Controller
 
         if (!$push->canSend()) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.library_missing')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.library_missing'),
             ], 400);
         }
 
         if (!$vapid['publicKey'] || !$vapid['privateKey'] || !$vapid['subject']) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.vapid_missing')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.vapid_missing'),
             ], 400);
         }
 
@@ -132,7 +133,7 @@ class PwaPushController extends Controller
 
         if ($subscriptions->isEmpty()) {
             return response()->json([
-                'message' => trans('pwa-plugin::pwa-plugin.errors.no_subscription')
+                'message' => trans('pwa-plugin::pwa-plugin.errors.no_subscription'),
             ], 404);
         }
 
@@ -175,13 +176,6 @@ class PwaPushController extends Controller
         $defaultGuard = config('auth.defaults.guard');
         if ($defaultGuard) {
             $user = Auth::guard($defaultGuard)->user();
-            if ($user) {
-                return $user;
-            }
-        }
-
-        foreach (array_keys(config('auth.guards', [])) as $guard) {
-            $user = Auth::guard($guard)->user();
             if ($user) {
                 return $user;
             }

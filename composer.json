@@ -1,0 +1,6 @@
+{
+  "require-dev": {
+    "laravel/pint": "^1.15",
+    "phpstan/phpstan": "^2.0"
+  }
+}

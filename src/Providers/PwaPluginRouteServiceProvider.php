@@ -24,6 +24,9 @@ class PwaPluginRouteServiceProvider extends ServiceProvider
             Route::middleware(['web', 'auth', 'throttle:60,1'])->group(function () {
                 Route::post('/pwa/subscribe', [PwaPushController::class, 'subscribe'])->name('pwa.subscribe');
                 Route::post('/pwa/unsubscribe', [PwaPushController::class, 'unsubscribe'])->name('pwa.unsubscribe');
+            });
+
+            Route::middleware(['web', 'auth', 'throttle:10,1'])->group(function () {
                 Route::post('/pwa/test', [PwaPushController::class, 'test'])->name('pwa.test');
             });
         });
