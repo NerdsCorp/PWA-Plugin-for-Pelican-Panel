@@ -3,6 +3,5 @@
 phpstan-bootstrap.php export-ignore
 phpstan.neon export-ignore
 pint.json export-ignore
-plugin.json export-ignore
 composer.json export-ignore
 update.json export-ignore
