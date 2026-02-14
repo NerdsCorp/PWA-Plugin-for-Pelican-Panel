@@ -1,0 +1,31 @@
+name: Package PWA Plugin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create pwa-plugin directory structure
+        run: |
+          mkdir -p pwa-plugin
+          rsync -av --exclude='.git' --exclude='pwa-plugin' ./ pwa-plugin/
+      
+      - name: Create zip archive
+        run: |
+          zip -r pwa-plugin.zip pwa-plugin/
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-plugin
+          path: pwa-plugin.zip
+          retention-days: 90
