@@ -37,6 +37,8 @@ jobs:
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $TAG"
+          echo "Resolved version: $VERSION"
 
       - name: Update plugin.json and update.json
         run: |
@@ -57,6 +59,9 @@ jobs:
           }
           EOF
 
+          echo "plugin.json version: $(jq -r '.version' plugin.json)"
+          echo "update.json version: $(jq -r '.[\"*\"].version' update.json)"
+
       - name: Commit metadata changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -67,6 +72,7 @@ jobs:
             echo "No metadata changes to commit"
           else
             git commit -m "Update release metadata to version ${{ steps.release.outputs.version }}"
+            git pull --rebase origin "${DEFAULT_BRANCH}"
             git push origin "HEAD:${DEFAULT_BRANCH}"
           fi
 
@@ -75,6 +81,8 @@ jobs:
     needs: update-metadata
     env:
       DEFAULT_BRANCH: ${{ needs.update-metadata.outputs.default_branch }}
+      RELEASE_TAG: ${{ needs.update-metadata.outputs.tag }}
+      RELEASE_VERSION: ${{ needs.update-metadata.outputs.version }}
     steps:
       - name: Checkout updated default branch
         uses: actions/checkout@v4
@@ -82,6 +90,28 @@ jobs:
           ref: ${{ env.DEFAULT_BRANCH }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Force release versions before packaging
+        run: |
+          REPO="${{ github.repository }}"
+          TAG="${RELEASE_TAG}"
+          VERSION="${RELEASE_VERSION}"
+          DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/pwa-plugin.zip"
+
+          jq --arg version "$VERSION" '.version = $version' plugin.json > plugin.json.tmp
+          mv plugin.json.tmp plugin.json
+
+          cat > update.json << EOF
+          {
+            "*": {
+              "version": "$VERSION",
+              "download_url": "$DOWNLOAD_URL"
+            }
+          }
+          EOF
+
+          echo "Packaging version: $(jq -r '.version' plugin.json)"
+          echo "Update manifest version: $(jq -r '.[\"*\"].version' update.json)"
 
       - name: Create pwa-plugin directory structure
         run: |
@@ -102,10 +132,11 @@ jobs:
 
       - name: Upload asset to release
         if: github.event_name == 'release'
-        uses: ncipollo/release-action@v1
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          allowUpdates: true
-          artifacts: pwa-plugin.zip
-          replacesArtifacts: true
-          tag: ${{ needs.update-metadata.outputs.tag }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./pwa-plugin.zip
+          asset_name: pwa-plugin.zip
+          asset_content_type: application/zip
