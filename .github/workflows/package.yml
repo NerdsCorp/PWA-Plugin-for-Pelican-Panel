@@ -75,7 +75,7 @@ jobs:
           git fetch origin "${DEFAULT_BRANCH}"
 
           MAIN_PLUGIN_VERSION="$(git show "origin/${DEFAULT_BRANCH}:plugin.json" | jq -r '.version')"
-          MAIN_UPDATE_VERSION="$(git show "origin/${DEFAULT_BRANCH}:update.json" | jq -r '.[\"*\"].version')"
+          MAIN_UPDATE_VERSION="$(git show "origin/${DEFAULT_BRANCH}:update.json" | jq -r '.["*"].version')"
 
           echo "main plugin.json version: $MAIN_PLUGIN_VERSION"
           echo "main update.json version: $MAIN_UPDATE_VERSION"
