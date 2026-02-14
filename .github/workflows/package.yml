@@ -14,12 +14,21 @@ permissions:
   contents: write
 
 jobs:
-  package:
+  update-metadata:
     runs-on: ubuntu-latest
-    
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      default_branch: ${{ env.DEFAULT_BRANCH }}
     steps:
-      - name: Checkout repository
+      - name: Checkout default branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve release version
         id: release
@@ -29,33 +38,74 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Update plugin.json version for package
+      - name: Update plugin.json and update.json
         run: |
-          jq --arg version "${{ steps.release.outputs.version }}" \
-            '.version = $version' plugin.json > plugin.json.tmp
+          REPO="${{ github.repository }}"
+          TAG="${{ steps.release.outputs.tag }}"
+          VERSION="${{ steps.release.outputs.version }}"
+          DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/pwa-plugin.zip"
+
+          jq --arg version "$VERSION" '.version = $version' plugin.json > plugin.json.tmp
           mv plugin.json.tmp plugin.json
-      
+
+          cat > update.json << EOF
+          {
+            "*": {
+              "version": "$VERSION",
+              "download_url": "$DOWNLOAD_URL"
+            }
+          }
+          EOF
+
+      - name: Commit metadata changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add plugin.json update.json
+
+          if git diff --staged --quiet; then
+            echo "No metadata changes to commit"
+          else
+            git commit -m "Update release metadata to version ${{ steps.release.outputs.version }}"
+            git push origin "HEAD:${DEFAULT_BRANCH}"
+          fi
+
+  package:
+    runs-on: ubuntu-latest
+    needs: update-metadata
+    env:
+      DEFAULT_BRANCH: ${{ needs.update-metadata.outputs.default_branch }}
+    steps:
+      - name: Checkout updated default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEFAULT_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create pwa-plugin directory structure
         run: |
           mkdir -p pwa-plugin
           rsync -av --exclude='.git' --exclude='pwa-plugin' ./ pwa-plugin/
-      
+
       - name: Create zip archive
-        run: |
-          zip -r pwa-plugin.zip pwa-plugin/
+        run: zip -r pwa-plugin.zip pwa-plugin/
 
       - name: Verify package archive
         run: ls -lah pwa-plugin.zip
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pwa-plugin
           path: pwa-plugin.zip
-      
-      - name: Upload to release
+
+      - name: Upload asset to release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          files: pwa-plugin.zip
+          allowUpdates: true
+          artifacts: pwa-plugin.zip
+          replacesArtifacts: true
+          tag: ${{ needs.update-metadata.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
