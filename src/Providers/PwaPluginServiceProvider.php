@@ -13,6 +13,7 @@ class PwaPluginServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'pwa-plugin');
+        $this->loadTranslationsFrom(__DIR__ . '/../../lang', 'pwa-plugin');
 
         Event::listen(NotificationSent::class, SendPwaPushOnDatabaseNotification::class);
     }
