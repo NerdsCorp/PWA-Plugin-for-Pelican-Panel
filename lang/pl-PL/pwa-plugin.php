@@ -3,6 +3,7 @@
 return [
     'navigation' => [
         'label' => 'PWA',
+        'group' => 'Zaawansowane',
     ],
     'settings' => [
         'title' => 'Ustawienia PWA',

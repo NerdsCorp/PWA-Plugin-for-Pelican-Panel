@@ -55,7 +55,7 @@ class PwaSettings extends Page implements HasSchemas
 
     public static function getNavigationGroup(): string|\UnitEnum|null
     {
-        return __('Advanced');
+        return trans('pwa-plugin::pwa-plugin.navigation.group');
     }
 
     public static function shouldRegisterNavigation(): bool
