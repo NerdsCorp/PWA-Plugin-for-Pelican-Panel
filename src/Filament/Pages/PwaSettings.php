@@ -29,8 +29,6 @@ class PwaSettings extends Page implements HasSchemas
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-device-phone-mobile';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Advanced';
-
     protected static ?int $navigationSort = 90;
 
     public ?array $data = [];
@@ -53,6 +51,11 @@ class PwaSettings extends Page implements HasSchemas
     public static function getNavigationLabel(): string
     {
         return trans('pwa-plugin::pwa-plugin.navigation.label');
+    }
+
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return trans('pwa-plugin::pwa-plugin.navigation.group');
     }
 
     public static function shouldRegisterNavigation(): bool

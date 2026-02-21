@@ -7,6 +7,7 @@ use Filament\Contracts\Plugin as PluginContract;
 use Filament\Panel;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs\Tab;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
@@ -24,6 +25,7 @@ class PwaPlugin implements PluginContract
     public function register(Panel $panel): void
     {
         View::addNamespace('pwa-plugin', __DIR__ . '/../resources/views');
+        Lang::addNamespace('pwa-plugin', __DIR__ . '/../lang');
 
         $this->registerHeadHook($panel);
 
